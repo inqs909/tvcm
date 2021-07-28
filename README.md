@@ -9,7 +9,7 @@ coefficient models.
 ## Installation
 
 ``` r
-devtools::install_gitlab("inqs909/tvcm")
+devtools::install_github("inqs909/tvcm")
 ```
 
 ### Windows

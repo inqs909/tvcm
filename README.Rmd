@@ -20,7 +20,7 @@ The goal of this package is to provide tools to fit time-varying coefficient mod
 ## Installation
 
 ```{r, eval=FALSE}
-devtools::install_gitlab("inqs909/tvcm")
+devtools::install_github("inqs909/tvcm")
 ```
 
 
