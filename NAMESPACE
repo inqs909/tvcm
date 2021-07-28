@@ -1,0 +1,19 @@
+useDynLib(tvcm, .registration=TRUE)
+importFrom(Rcpp, evalCpp)
+exportPattern("^[[:alpha:]]+")
+
+export(binary_vcm)
+export(binary_vcm_cv)
+export(pois_vcm)
+export(pois_vcm_cv)
+export(tvcm)
+export(tvcm_cv)
+export(summary.tvcm)
+export(summary.tvcm.cv)
+
+S3method(summary,tvcm)
+S3method(summary,tvcm.cv)
+
+importFrom("stats", "binomial", "coef", "dist", "glm", "model.frame",
+                "model.matrix", "model.response", "optim", "poisson",
+                "quantile", "sd")

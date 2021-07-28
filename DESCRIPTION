@@ -1,0 +1,22 @@
+Package: tvcm
+Type: Package
+Title: Time-Varying Coefficient Models
+Version: 0.1.1
+Date: 2020-12-26
+Author: Isaac Quintanilla Salinas
+Maintainer: Isaac Quintanilla Salinas  <inqs909@gmail.com>
+Description: This package fits time-varying coefficient models using a local-linear
+  for the varying-coefficients.
+License: GPL-3
+Depends:
+    R (>= 3.5.0)
+Imports: Rcpp (>= 1.0.5),
+         learnr,
+LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 7.1.1
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
