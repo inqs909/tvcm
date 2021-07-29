@@ -1,4 +1,4 @@
-#' tvcm_cv: Cross-Validation for Time-Varying Coefficient Model 
+#' tvcm_cv_local: Cross-Validation for Time-Varying Coefficient Model 
 #'
 #' This function conducts a leave-one-out cross-validation approach to determine the best bandwidth for the data.
 #'
@@ -9,7 +9,7 @@
 #' @param bandwidths A vector containing the bandwidth values for the cross-validation. Default is tests 50 bandwidths from ranging from double the smallest time point difference to range of time points. 
 #' @param kernel The name of the kernel function used to estimate the varying-coefficient values. Default is Epanechnikov.
 #'
-#' @return tvcm_cv returns a list containing the results from the cross-validation
+#' @return tvcm_cv_local returns a list containing the results from the cross-validation
 #' \itemize{
 #' \item recommended_bandwidth: The bandwidth with the smallest negative log-likelihood.
 #' \item value: value of negative log-likelihood at recommended bandwidth
@@ -20,11 +20,11 @@
 #' @author Isaac Quintanilla Salinas
 #' 
 #' @examples 
-#' cv_fit <- tvcm_cv(formula = Y~x1+x2, data = pois_data, time = time, id = id)
+#' cv_fit <- tvcm_cv_local(formula = Y~x1+x2, data = pois_data, time = time, id = id)
 #' 
 #' summary(cv_fit)
 #' 
-tvcm_cv <- function(formula, data, time, id = NULL,
+tvcm_cv_local <- function(formula, data, time, id = NULL,
                        bandwidths = NULL, kernel = "epanechnikov"){
   # Kernel Information
   kernel_id <- kernel_cpp(kernel) # ID for cpp
@@ -64,7 +64,7 @@ tvcm_cv <- function(formula, data, time, id = NULL,
           ipp <- cbind(diag(rep(1,lvcm)), diag(rep(0,lvcm)))
           
   
-          nvcm <- vcm_wls(cvmm, cvmr, cvmt,
+          nvcm <- vcm_wls_local(cvmm, cvmr, cvmt,
                           as.numeric(cviimt), hhh, kernel_id)
           cv_rss[cv] <- (cviimr - cviimm %*% ipp %*% nvcm)^2
         }
@@ -93,7 +93,7 @@ tvcm_cv <- function(formula, data, time, id = NULL,
           
           cvrvcm <- matrix(ncol = length(cvii$time), nrow = 2*lvcm)
           for (i in 1:length(cviimt)){
-            cvrvcm[, i] <- tvcm_wls(cvmm, cvmr, cvmt, cvmid, cviimt[i], hhh, kernel_id)
+            cvrvcm[, i] <- tvcm_wls_local(cvmm, cvmr, cvmt, cvmid, cviimt[i], hhh, kernel_id)
           }
           cviirs <- vector(length = length(cviimt))
           for (i in 1:length(cviimt)){
@@ -108,7 +108,10 @@ tvcm_cv <- function(formula, data, time, id = NULL,
   colnames(res) <- c("bandwidth", "neg loglik")
   b_id<-which.min(res[,2])
   band <- res[b_id,1]
-  results <- list(recommended_bandwidth = band, value = res[b_id,2], neg_logliks = res)
+  results <- list(recommended_bandwidth = band,
+                  value = res[b_id,2],
+                  neg_logliks = res,
+                  method = "local-linear")
   class(results) <- "tvcm.cv"
   return(results)
 }

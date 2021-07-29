@@ -113,7 +113,7 @@ arma::vec kernel_vec_wls(arma::vec time, double time_zero, double h, int type){
 //'
 //[[Rcpp::export]]
 
-arma::vec vcm_wls(arma::mat x, arma::vec y, arma::vec time,
+arma::vec vcm_wls_local(arma::mat x, arma::vec y, arma::vec time,
              double time_zero, double h, int type){ // ith observation loglik value
   int nn = y.size();
   arma::vec tt_zero = time - time_zero;
@@ -144,7 +144,7 @@ arma::vec vcm_wls(arma::mat x, arma::vec y, arma::vec time,
 //'
 //[[Rcpp::export]]
 
-arma::mat tvcm_wls(arma::mat x, arma::vec y, arma::vec time, arma::vec id,
+arma::mat tvcm_wls_local(arma::mat x, arma::vec y, arma::vec time, arma::vec id,
              double time_zero, double h, int type){ // ith observation loglik value
   int nn = max(id);
   int oo = 2*x.n_cols;

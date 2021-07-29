@@ -1,4 +1,4 @@
-#' binary_vcm: Binary Time-Varying Coefficient Model
+#' binary_local_vcm: Binary Time-Varying Coefficient Model
 #' 
 #' This function estimates the time-varying coefficient models for a binary response variable. 
 #'
@@ -48,13 +48,13 @@
 #' @export
 #' 
 #' @examples 
-#' binary_vcm(formula = Y~x1+x2, data = binary_data, time = time, 
-#'            id = id, se = TRUE, nboot = 100)
+#' binary_local_vcm(formula = Y~x1+x2, data = binary_data, time = time, 
+#'                  id = id, se = TRUE, nboot = 100)
 #' 
-binary_vcm <- function(formula, data, time, id = NULL,
-                       ngrids = 200, grid_points = NULL,
-                       bandwidth = NULL, kernel = "epanechnikov",
-                       se = FALSE, alpha = 0.05, nboot = 1000){
+binary_local_vcm <- function(formula, data, time, id = NULL,
+                             ngrids = 200, grid_points = NULL,
+                             bandwidth = NULL, kernel = "epanechnikov",
+                             se = FALSE, alpha = 0.05, nboot = 1000){
   # Kernel Information
   kernel_id <- kernel_cpp(kernel) # ID for cpp
   
@@ -93,21 +93,25 @@ binary_vcm <- function(formula, data, time, id = NULL,
   ivcm <- c(Inicoef, rep(0, length(Inicoef)))
   dd <- length(ivcm)
   rvcm <- matrix(nrow = ll, ncol = dd)
-  nvcm <- optim(ivcm, bin_logit_loglik, gr = gr_bin_logit_loglik, x = mm, y = mr, time = mt,
+  nvcm <- optim(ivcm, bin_logit_local_loglik, gr = gr_bin_logit_loglik, x = mm, y = mr, time = mt,
                 time_zero = as.numeric(gp[1]), h = hh, type = kernel_id, method = "BFGS")$par
 
-  grvcm <- gr_bin_logit_loglik(mm, nvcm, mr, mt,
-                               as.numeric(gp[1]), hh, kernel_id)
-  hsvcm <- hs_bin_logit_loglik(mm, nvcm, mr, mt,
-                               as.numeric(gp[1]), hh, kernel_id)
+  grvcm <- gr_bin_logit_local_loglik(mm, nvcm, mr, mt,
+                                     as.numeric(gp[1]),
+                                     hh, kernel_id)
+  hsvcm <- hs_bin_logit_local_loglik(mm, nvcm, mr, mt,
+                                     as.numeric(gp[1]),
+                                     hh, kernel_id)
   rvcm[1,] <- nvcm - solve(hsvcm) %*% grvcm
 
   for (i in 2:ll){
     ovcm <- as.vector(rvcm[(i-1),])
-    grvcm <- gr_bin_logit_loglik(mm, ovcm, mr, mt,
-                                 as.numeric(gp[i]), hh, kernel_id)
-    hsvcm <- hs_bin_logit_loglik(mm, ovcm, mr, mt,
-                                 as.numeric(gp[i]), hh, kernel_id)
+    grvcm <- gr_bin_logit_local_loglik(mm, ovcm, mr, mt,
+                                       as.numeric(gp[i]),
+                                       hh, kernel_id)
+    hsvcm <- hs_bin_logit_local_loglik(mm, ovcm, mr, mt,
+                                       as.numeric(gp[i]),
+                                       hh, kernel_id)
     rvcm[i,] <- ovcm - solve(hsvcm) %*% grvcm
   }
   
@@ -136,27 +140,36 @@ binary_vcm <- function(formula, data, time, id = NULL,
         bivcm <- c(Inicoef, rep(0, length(Inicoef)))
         bdd <- length(ivcm)
         brvcm <- matrix(nrow = ll, ncol = dd)
-        bnvcm <- optim(bivcm, bin_logit_loglik, gr = gr_bin_logit_loglik, x = bmm, y = bmr, time = bmt,
-                      time_zero = as.numeric(gp[1]), h = hh, type = kernel_id, method = "BFGS")$par
-        bgrvcm <- gr_bin_logit_loglik(bmm, bnvcm, bmr, bmt,
-                                      as.numeric(gp[1]), hh, kernel_id)
-        bhsvcm <- hs_bin_logit_loglik(bmm, bnvcm, bmr, bmt,
-                                      as.numeric(gp[1]), hh, kernel_id)
+        bnvcm <- optim(bivcm, bin_logit_local_loglik,
+                       gr = gr_bin_logit_loglik,
+                       x = bmm, y = bmr, time = bmt,
+                       time_zero = as.numeric(gp[1]),
+                       h = hh, type = kernel_id, method = "BFGS")$par
+        bgrvcm <- gr_bin_logit_local_loglik(bmm, bnvcm, bmr, bmt,
+                                            as.numeric(gp[1]),
+                                            hh, kernel_id)
+        bhsvcm <- hs_bin_logit_local_loglik(bmm, bnvcm, bmr, bmt,
+                                            as.numeric(gp[1]),
+                                            hh, kernel_id)
         brvcm[1,] <- bnvcm - solve(bhsvcm) %*% bgrvcm
 
         for (ii in 2:ll){
           bovcm <- as.vector(rvcm[(ii-1),])
-          bgrvcm <- gr_bin_logit_loglik(bmm, bovcm, bmr, bmt,
-                                       as.numeric(gp[ii]), hh, kernel_id)
-          bhsvcm <- hs_bin_logit_loglik(bmm, bovcm, bmr, bmt,
-                                       as.numeric(gp[ii]), hh, kernel_id)
+          bgrvcm <- gr_bin_logit_local_loglik(bmm, bovcm, bmr, bmt,
+                                              as.numeric(gp[ii]),
+                                              hh, kernel_id)
+          bhsvcm <- hs_bin_logit_local_loglik(bmm, bovcm, bmr, bmt,
+                                              as.numeric(gp[ii]),
+                                              hh, kernel_id)
           brvcm[ii,] <- bovcm - solve(bhsvcm) %*% bgrvcm
         }
         boots_array[,,i] <- brvcm
       }
       boot_se <- apply(boots_array, c(1,2), sd)
-      boot_ll <- apply(boots_array, c(1,2), quantile, probs = lower_alpha)
-      boot_ul <- apply(boots_array, c(1,2), quantile, probs = upper_alpha)
+      boot_ll <- apply(boots_array, c(1,2), 
+                       quantile, probs = lower_alpha)
+      boot_ul <- apply(boots_array, c(1,2), quantile, 
+                       probs = upper_alpha)
       
       boot_se_est <- ipp %*% t(boot_se)
       boot_se_deriv <- ipp_deriv %*% t(boot_se)
@@ -277,7 +290,10 @@ binary_vcm <- function(formula, data, time, id = NULL,
   colnames(rvcm_deriv) <- gp_labels
   
   
-  results <- list(estimates = list(estimates = rvcm_est, deriv = rvcm_deriv), bootstrap_results = boot_res, time_points = gp)
+  results <- list(estimates = list(estimates = rvcm_est, deriv = rvcm_deriv),
+                  bootstrap_results = boot_res,
+                  time_points = gp,
+                  method = "local-linear")
   
   class(results) <- "tvcm"
   

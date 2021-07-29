@@ -1,4 +1,4 @@
-#' pois_vcm: Binary Time-Varying Coefficient Model
+#' pois_local_vcm: Binary Time-Varying Coefficient Model
 #'
 #' This function estimates the time-varying coefficient models for a Poisson response variable. 
 #'
@@ -14,7 +14,7 @@
 #' @param alpha A value indicating the significance level for the percentiles.
 #' @param nboot A number indicating how many boot samples to construct.
 #'
-#' @return pois_vcm returns a list containing the estimated varying coefficients
+#' @return pois_local_vcm returns a list containing the estimated varying coefficients
 #' \itemize{
 #' \item estimates: A list containing two matrices:
 #' \itemize{
@@ -49,13 +49,13 @@
 #' 
 #' @examples 
 #' 
-#' pois_vcm(formula = Y~x1+x2, data = pois_data, time = time,
+#' pois_local_vcm(formula = Y~x1+x2, data = pois_data, time = time,
 #'          id = id, se = TRUE, nboot = 100)
 #' 
-pois_vcm <- function(formula, data, time, id = NULL,
-                       ngrids = 200, grid_points = NULL,
-                       bandwidth = NULL, kernel = "epanechnikov",
-                       se = FALSE, alpha = 0.05, nboot = 1000){
+pois_local_vcm <- function(formula, data, time, id = NULL,
+                           ngrids = 200, grid_points = NULL,
+                           bandwidth = NULL, kernel = "epanechnikov",
+                           se = FALSE, alpha = 0.05, nboot = 1000){
   # Kernel Information
   kernel_id <- kernel_cpp(kernel) # ID for cpp
   
@@ -94,20 +94,20 @@ pois_vcm <- function(formula, data, time, id = NULL,
   ivcm <- c(Inicoef, rep(0, length(Inicoef)))
   dd <- length(ivcm)
   rvcm <- matrix(nrow = ll, ncol = dd)
-  nvcm <- optim(ivcm, pois_log_loglik, gr = gr_pois_log_loglik, x = mm, y = mr, time = mt,
+  nvcm <- optim(ivcm, pois_local_loglik, gr = gr_pois_local_loglik, x = mm, y = mr, time = mt,
                 time_zero = as.numeric(gp[1]), h = hh, type = kernel_id, method = "BFGS")$par
 
-  grvcm <- gr_pois_log_loglik(mm, nvcm, mr, mt,
+  grvcm <- gr_pois_local_loglik(mm, nvcm, mr, mt,
                               as.numeric(gp[1]), hh, kernel_id)
-  hsvcm <- hs_pois_log_loglik(mm, nvcm, mr, mt,
+  hsvcm <- hs_pois_local_loglik(mm, nvcm, mr, mt,
                               as.numeric(gp[1]), hh, kernel_id)
   rvcm[1,] <- nvcm - solve(hsvcm) %*% grvcm
   
   for (i in 2:ll){
     ovcm <- as.vector(rvcm[(i-1),])
-    grvcm <- gr_pois_log_loglik(mm, ovcm, mr, mt,
+    grvcm <- gr_pois_local_loglik(mm, ovcm, mr, mt,
                                  as.numeric(gp[i]), hh, kernel_id)
-    hsvcm <- hs_pois_log_loglik(mm, ovcm, mr, mt,
+    hsvcm <- hs_pois_local_loglik(mm, ovcm, mr, mt,
                                  as.numeric(gp[i]), hh, kernel_id)
     rvcm[i,] <- ovcm - solve(hsvcm) %*% grvcm
   }
@@ -137,20 +137,27 @@ pois_vcm <- function(formula, data, time, id = NULL,
         bivcm <- c(bInicoef, rep(0, length(bInicoef)))
         bdd <- length(bivcm)
         brvcm <- matrix(nrow = ll, ncol = bdd)
-        bnvcm <- optim(bivcm, pois_log_loglik, gr = gr_pois_log_loglik, x = bmm, y = bmr, time = bmt,
-                      time_zero = as.numeric(gp[1]), h = hh, type = kernel_id, method = "BFGS")$par
-        bgrvcm <- gr_pois_log_loglik(bmm, bnvcm, bmr, bmt,
-                                     as.numeric(gp[1]), hh, kernel_id)
-        bhsvcm <- hs_pois_log_loglik(bmm, bnvcm, bmr, bmt,
-                                     as.numeric(gp[1]), hh, kernel_id)
+        bnvcm <- optim(bivcm, pois_local_loglik, 
+                       gr = gr_pois_local_loglik, 
+                       x = bmm, y = bmr, time = bmt,
+                       time_zero = as.numeric(gp[1]),
+                       h = hh, type = kernel_id, method = "BFGS")$par
+        bgrvcm <- gr_pois_local_loglik(bmm, bnvcm, bmr, bmt,
+                                       as.numeric(gp[1]),
+                                       hh, kernel_id)
+        bhsvcm <- hs_pois_local_loglik(bmm, bnvcm, bmr, bmt,
+                                       as.numeric(gp[1]), 
+                                       hh, kernel_id)
         brvcm[1,] <- bnvcm - solve(bhsvcm) %*% bgrvcm
         
         for (ii in 2:ll){
           bovcm <- as.vector(rvcm[(ii-1),])
-          bgrvcm <- gr_pois_log_loglik(bmm, bovcm, bmr, bmt,
-                                       as.numeric(gp[ii]), hh, kernel_id)
-          bhsvcm <- hs_pois_log_loglik(bmm, bovcm, bmr, bmt,
-                                       as.numeric(gp[ii]), hh, kernel_id)
+          bgrvcm <- gr_pois_local_loglik(bmm, bovcm, bmr, bmt,
+                                         as.numeric(gp[ii]), 
+                                         hh, kernel_id)
+          bhsvcm <- hs_pois_local_loglik(bmm, bovcm, bmr, bmt,
+                                         as.numeric(gp[ii]), 
+                                         hh, kernel_id)
           brvcm[ii,] <- bovcm - solve(bhsvcm) %*% bgrvcm
         }
         boots_array[,,i] <- brvcm
@@ -187,8 +194,10 @@ pois_vcm <- function(formula, data, time, id = NULL,
       colnames(boot_ul_deriv) <- gp_labels
       
       
-      boot_res <- list(boot_se = list(est = boot_se_est, deriv = boot_se_deriv), boot_lower = list(est = boot_ll_est, deriv = boot_ll_deriv),
-                       boot_upper = list(est = boot_ul_est, deriv = boot_ul_deriv), significance_level = alpha,
+      boot_res <- list(boot_se = list(est = boot_se_est, deriv = boot_se_deriv), 
+                       boot_lower = list(est = boot_ll_est, deriv = boot_ll_deriv),
+                       boot_upper = list(est = boot_ul_est, deriv = boot_ul_deriv), 
+                       significance_level = alpha,
                        boot_samples = boots_array)     
     } else {
       boot_max <- max(data$id)
@@ -210,20 +219,23 @@ pois_vcm <- function(formula, data, time, id = NULL,
         bivcm <- c(bInicoef, rep(0, length(bInicoef)))
         bdd <- length(bivcm)
         brvcm <- matrix(nrow = ll, ncol = bdd)
-        bnvcm <- optim(bivcm, pois_log_loglik, gr = gr_pois_log_loglik, x = bmm, y = bmr, time = bmt,
-                       time_zero = as.numeric(gp[1]), h = hh, type = kernel_id, method = "BFGS")$par
+        bnvcm <- optim(bivcm, pois_local_loglik, 
+                       gr = gr_pois_local_loglik, 
+                       x = bmm, y = bmr, time = bmt,
+                       time_zero = as.numeric(gp[1]),
+                       h = hh, type = kernel_id, method = "BFGS")$par
         
-        bgrvcm <- gr_pois_log_loglik(bmm, bnvcm, bmr, bmt,
+        bgrvcm <- gr_pois_local_loglik(bmm, bnvcm, bmr, bmt,
                                      as.numeric(gp[1]), hh, kernel_id)
-        bhsvcm <- hs_pois_log_loglik(bmm, bnvcm, bmr, bmt,
+        bhsvcm <- hs_pois_local_loglik(bmm, bnvcm, bmr, bmt,
                                      as.numeric(gp[1]), hh, kernel_id)
         brvcm[1,] <- bnvcm - solve(bhsvcm) %*% bgrvcm
         
         for (ii in 2:ll){
           bovcm <- as.vector(rvcm[(ii-1),])
-          bgrvcm <- gr_pois_log_loglik(bmm, bovcm, bmr, bmt,
+          bgrvcm <- gr_pois_local_loglik(bmm, bovcm, bmr, bmt,
                                         as.numeric(gp[ii]), hh, kernel_id)
-          bhsvcm <- hs_pois_log_loglik(bmm, bovcm, bmr, bmt,
+          bhsvcm <- hs_pois_local_loglik(bmm, bovcm, bmr, bmt,
                                         as.numeric(gp[ii]), hh, kernel_id)
           brvcm[ii,] <- bovcm - solve(bhsvcm) %*% bgrvcm
         }
@@ -261,8 +273,10 @@ pois_vcm <- function(formula, data, time, id = NULL,
       colnames(boot_ul_deriv) <- gp_labels
       
       
-      boot_res <- list(boot_se = list(est = boot_se_est, deriv = boot_se_deriv), boot_lower = list(est = boot_ll_est, deriv = boot_ll_deriv),
-                       boot_upper = list(est = boot_ul_est, deriv = boot_ul_deriv), significance_level = alpha,
+      boot_res <- list(boot_se = list(est = boot_se_est, deriv = boot_se_deriv), 
+                       boot_lower = list(est = boot_ll_est, deriv = boot_ll_deriv),
+                       boot_upper = list(est = boot_ul_est, deriv = boot_ul_deriv),
+                       significance_level = alpha,
                        boot_samples = boots_array)     
       
     }
@@ -280,7 +294,10 @@ pois_vcm <- function(formula, data, time, id = NULL,
   colnames(rvcm_deriv) <- gp_labels
   
   
-  results <- list(estimates = list(estimates = rvcm_est, deriv = rvcm_deriv), bootstrap_results = boot_res, time_points = gp)
+  results <- list(estimates = list(estimates = rvcm_est, deriv = rvcm_deriv),
+                  bootstrap_results = boot_res, 
+                  time_points = gp,
+                  method = "local-linear")
   class(results) <- "tvcm"
   
   return(results)

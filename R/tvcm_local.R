@@ -1,4 +1,4 @@
-#' tvcm: Time-Varying Coefficient Models
+#' tvcm_local: Time-Varying Coefficient Models
 #' 
 #' This function estimates the time-varying coefficient model at different time points.
 #'
@@ -15,7 +15,7 @@
 #' @param alpha A value indicating the significance level for the percentiles.
 #' @param nboot A number indicating how many boot samples to construct.
 #'
-#' @return tvcm returns a list containing the estimated varying coefficients
+#' @return tvcm_local returns a list containing the estimated varying coefficients
 #' \itemize{
 #' \item estimates: A list containing two matrices:
 #' \itemize{
@@ -50,13 +50,13 @@
 #'
 #' @examples 
 #' 
-#' tvcm(formula = Y~x1+x2, data = normal_data, time = time, 
+#' tvcm_local(formula = Y~x1+x2, data = normal_data, time = time, 
 #'      id = id, se = TRUE, nboot = 100)
 #' 
-tvcm <- function(formula, data, time, id = NULL,
-                 ngrids = 200, grid_points = NULL,
-                 bandwidth = NULL, kernel = "epanechnikov",
-                 se = FALSE, alpha = 0.05, nboot = 1000){
+tvcm_local <- function(formula, data, time, id = NULL,
+                       ngrids = 200, grid_points = NULL,
+                       bandwidth = NULL, kernel = "epanechnikov",
+                       se = FALSE, alpha = 0.05, nboot = 1000){
   # Kernel Information ####
   kernel_id <- kernel_cpp(kernel) # ID for cpp
   
@@ -93,7 +93,7 @@ tvcm <- function(formula, data, time, id = NULL,
   # Estimating VCMs####
   if (is.null(data$id)) {
     
-    rvcm<-sapply(gp, vcm_wls,
+    rvcm<-sapply(gp, vcm_wls_local,
            x = mm, y = mr, time = mt, h= hh, type = kernel_id,
            simplify = "matrix")
     
@@ -177,7 +177,7 @@ tvcm <- function(formula, data, time, id = NULL,
         
         brvcm <- matrix(nrow = ll, ncol = dd)
 
-        brvcm<-sapply(gp, vcm_wls,
+        brvcm<-sapply(gp, vcm_wls_local,
                       x = bmm, y = bmr, time = bmt, h= hh, type = kernel_id,
                       simplify = "matrix")
         
@@ -207,7 +207,7 @@ tvcm <- function(formula, data, time, id = NULL,
         bmt <- as.vector(boot_df$time)
         bmid <- as.vector(boot_df$id)
         
-        brvcm<-sapply(gp, tvcm_wls,
+        brvcm<-sapply(gp, tvcm_wls_local,
                       x = bmm, y = bmr, time = bmt, id = bmid, h= hh, type = kernel_id,
                       simplify = "matrix")
         
@@ -265,7 +265,10 @@ tvcm <- function(formula, data, time, id = NULL,
   colnames(rvcm_deriv) <- gp_labels
   
   
-  results <- list(estimates = list(estimates = rvcm_est, deriv = rvcm_deriv), bootstrap_results = boot_res, time_points = gp)
+  results <- list(estimates = list(estimates = rvcm_est, deriv = rvcm_deriv),
+                  bootstrap_results = boot_res,
+                  time_points = gp,
+                  method = "local-linear")
   class(results) <- "tvcm"
   
   return(results)
