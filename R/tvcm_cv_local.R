@@ -25,7 +25,7 @@
 #' summary(cv_fit)
 #' 
 tvcm_cv_local <- function(formula, data, time, id = NULL,
-                       bandwidths = NULL, kernel = "epanechnikov"){
+                          bandwidths = NULL, kernel = "epanechnikov"){
   # Kernel Information
   kernel_id <- kernel_cpp(kernel) # ID for cpp
 

@@ -1,9 +1,9 @@
 tvcm <- function(formula, data, time, id = NULL,
-                       method = "local-linear",
-                       local_params = NULL,
-                       p_splines_params = NULL,
-                       bayesian_p_splines_params = NULL,
-                       se = FALSE, alpha = 0.05, nboot = 1000){
+                 method = "local-linear",
+                 local_params = NULL,
+                 p_splines_params = NULL,
+                 bayesian_p_splines_params = NULL,
+                 se = FALSE, alpha = 0.05, nboot = 1000){
   if (method == "local-linear"){
     if (is.null(local_params)){
       results <- tvcm_local(formula = formula, data = data, time = time, 
